@@ -41,3 +41,7 @@ next-env.d.ts
 
 # instructions
 instructions/
+
+# project-specific
+/public/uploads
+.env.local
