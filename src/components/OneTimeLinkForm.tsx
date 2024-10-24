@@ -9,7 +9,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Copy, Link as LinkIcon } from 'lucide-react'
+import { Loader2, Copy, Link as LinkIcon, Check, FileText } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -20,7 +20,10 @@ const formSchema = z.object({
 
 export default function OneTimeLinkForm() {
   const [generatedLink, setGeneratedLink] = useState('')
+  const [sharedContent, setSharedContent] = useState('')
+  const [sharedFileName, setSharedFileName] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isCopied, setIsCopied] = useState(false)
   const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -50,6 +53,8 @@ export default function OneTimeLinkForm() {
 
       const data = await response.json()
       setGeneratedLink(data.link)
+      setSharedContent(values.content)
+      setSharedFileName(values.file?.name || null)
     } catch (error) {
       console.error('Error generating link:', error)
       toast({
@@ -64,10 +69,12 @@ export default function OneTimeLinkForm() {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generatedLink)
+    setIsCopied(true)
     toast({
       title: "Copied!",
       description: "Link copied to clipboard",
     })
+    setTimeout(() => setIsCopied(false), 2000) // Reset after 2 seconds
   }
 
   return (
@@ -79,6 +86,7 @@ export default function OneTimeLinkForm() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3 }}
+          className="space-y-4"
         >
           <Card>
             <CardHeader>
@@ -94,7 +102,29 @@ export default function OneTimeLinkForm() {
               >
                 <Input value={generatedLink} readOnly />
                 <Button onClick={copyToClipboard} size="icon">
-                  <Copy className="h-4 w-4" />
+                  <AnimatePresence mode="wait">
+                    {isCopied ? (
+                      <motion.div
+                        key="check"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Check className="h-4 w-4 text-green-500" />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="copy"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </Button>
               </motion.div>
             </CardContent>
@@ -103,6 +133,27 @@ export default function OneTimeLinkForm() {
                 This link will expire after 24 hours or after the first access.
               </p>
             </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Shared Content</CardTitle>
+              <CardDescription>Preview of the shared information</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Content:</h3>
+                  <p className="text-sm bg-muted p-2 rounded-md whitespace-pre-wrap">{sharedContent}</p>
+                </div>
+                {sharedFileName && (
+                  <div className="flex items-center space-x-2">
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm">{sharedFileName}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
           </Card>
         </motion.div>
       ) : (
@@ -147,24 +198,23 @@ export default function OneTimeLinkForm() {
                   </FormItem>
                 )}
               />
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              <Button 
+                type="submit" 
+                disabled={isLoading}
+                className="w-full"
               >
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <LinkIcon className="mr-2 h-4 w-4" />
-                      Generate Link
-                    </>
-                  )}
-                </Button>
-              </motion.div>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <LinkIcon className="mr-2 h-4 w-4" />
+                    Generate Link
+                  </>
+                )}
+              </Button>
             </form>
           </Form>
         </motion.div>
