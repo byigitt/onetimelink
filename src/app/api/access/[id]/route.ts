@@ -2,36 +2,40 @@
 
 import { type NextRequest, NextResponse } from 'next/server'
 import crypto from 'node:crypto'
-
-// This is a placeholder for the actual database integration
-const tempStorage: { [key: string]: { content: string, file?: Buffer } } = {}
+import { getData, deleteData } from '@/lib/storage'
 
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
+  const params = await props.params
   const id = params.id
 
-  if (!tempStorage[id]) {
+  console.log(`Accessing content for id: ${id}`)
+
+  const data = await getData(id)
+
+  if (!data) {
+    console.log(`Content not found for id: ${id}`)
     return NextResponse.json({ error: 'Content not found or already accessed' }, { status: 404 })
   }
 
-  const { content, file } = tempStorage[id]
+  const { content, file, fileName, createdAt, encryptionKey, iv } = data
 
-  // In a real implementation, you would retrieve the encryption key and IV from the database
-  const encryptionKey = crypto.randomBytes(32)
-  const iv = crypto.randomBytes(16)
+  // Check if the content has expired (24 hours)
+  if (Date.now() - createdAt > 24 * 60 * 60 * 1000) {
+    console.log(`Content expired for id: ${id}`)
+    await deleteData(id)
+    return NextResponse.json({ error: 'Content has expired' }, { status: 410 })
+  }
 
-  const decipher = crypto.createDecipheriv('aes-256-cbc', encryptionKey, iv)
+  const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(encryptionKey, 'hex'), Buffer.from(iv, 'hex'))
   let decryptedContent = decipher.update(content, 'hex', 'utf8')
   decryptedContent += decipher.final('utf8')
 
-  // Delete the content after accessing
-  delete tempStorage[id]
-
   let fileUrl = null
   if (file) {
-    // In a real implementation, you would generate a temporary URL for the file
-    fileUrl = '/api/download/' + id
+    fileUrl = `/api/download/${id}`
   }
 
-  return NextResponse.json({ content: decryptedContent, fileUrl })
+  console.log(`Content accessed for id: ${id}`)
+
+  return NextResponse.json({ content: decryptedContent, fileUrl, fileName })
 }
