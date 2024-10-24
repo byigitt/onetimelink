@@ -9,6 +9,9 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
+import { Loader2, Copy, Link as LinkIcon } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { motion, AnimatePresence } from 'framer-motion'
 
 const formSchema = z.object({
   content: z.string().min(1, 'Content is required'),
@@ -17,6 +20,7 @@ const formSchema = z.object({
 
 export default function OneTimeLinkForm() {
   const [generatedLink, setGeneratedLink] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -27,6 +31,7 @@ export default function OneTimeLinkForm() {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true)
     try {
       const formData = new FormData()
       formData.append('content', values.content)
@@ -52,52 +57,118 @@ export default function OneTimeLinkForm() {
         description: "Failed to generate link. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setIsLoading(false)
     }
   }
 
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(generatedLink)
+    toast({
+      title: "Copied!",
+      description: "Link copied to clipboard",
+    })
+  }
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="content"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Content</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Enter your sensitive information here" {...field} />
-              </FormControl>
-              <FormDescription>
-                This content will be encrypted and shared via a one-time link.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="file"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>File (optional)</FormLabel>
-              <FormControl>
-                <Input type="file" onChange={(e) => field.onChange(e.target.files?.[0])} />
-              </FormControl>
-              <FormDescription>
-                Upload a file (max 100MB) to be shared securely.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit">Generate Link</Button>
-      </form>
-      {generatedLink && (
-        <div className="mt-4">
-          <h3 className="text-lg font-semibold">Generated Link:</h3>
-          <p className="break-all">{generatedLink}</p>
-        </div>
+    <AnimatePresence mode="wait">
+      {generatedLink ? (
+        <motion.div
+          key="generated-link"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>Link Generated</CardTitle>
+              <CardDescription>Your one-time link has been created</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <motion.div
+                className="flex items-center space-x-2"
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200, damping: 10 }}
+              >
+                <Input value={generatedLink} readOnly />
+                <Button onClick={copyToClipboard} size="icon">
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </motion.div>
+            </CardContent>
+            <CardFooter>
+              <p className="text-sm text-muted-foreground">
+                This link will expire after 24 hours or after the first access.
+              </p>
+            </CardFooter>
+          </Card>
+        </motion.div>
+      ) : (
+        <motion.div
+          key="form"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <FormField
+                control={form.control}
+                name="content"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Content</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Enter your sensitive information here" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      This content will be encrypted and shared via a one-time link.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="file"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>File (optional)</FormLabel>
+                    <FormControl>
+                      <Input type="file" onChange={(e) => field.onChange(e.target.files?.[0])} />
+                    </FormControl>
+                    <FormDescription>
+                      Upload a file (max 100MB) to be shared securely.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <LinkIcon className="mr-2 h-4 w-4" />
+                      Generate Link
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+            </form>
+          </Form>
+        </motion.div>
       )}
-    </Form>
+    </AnimatePresence>
   )
 }
