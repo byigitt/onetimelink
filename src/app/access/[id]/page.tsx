@@ -130,8 +130,8 @@ export default function AccessPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                   >
-                    <h3 className="text-lg font-semibold mb-2">Content:</h3>
-                    <p className="whitespace-pre-wrap bg-muted p-4 rounded-md">{content}</p>
+                    <h3 className="font-semibold leading-none tracking-tight text-base mb-2">Content</h3>
+                    <p className="whitespace-pre-wrap bg-muted p-4 text-sm rounded-md">{content}</p>
                   </motion.div>
                 )}
                 {fileUrl && (
@@ -141,10 +141,10 @@ export default function AccessPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
                   >
-                    <h3 className="text-lg font-semibold mb-2">Attached File:</h3>
+                    <h3 className="font-semibold leading-none tracking-tight text-base mb-2">Attached File</h3>
                     <div className="flex items-center space-x-2 bg-muted p-4 rounded-md">
-                      <File className="h-6 w-6" />
-                      <span className="flex-grow">{fileName}</span>
+                      <File className="h-4 w-4" />
+                      <span className="flex-grow text-sm">{fileName}</span>
                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                         <Button onClick={handleDownload} disabled={isDownloading}>
                           {isDownloading ? (
