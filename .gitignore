@@ -43,5 +43,5 @@ next-env.d.ts
 instructions/
 
 # project-specific
-/public/uploads
+temp-storage.json
 .env.local
