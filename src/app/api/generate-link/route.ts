@@ -1,11 +1,9 @@
 'use server'
 
-import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'crypto'
+import { type NextRequest, NextResponse } from 'next/server'
+import crypto from 'node:crypto'
 import { v4 as uuidv4 } from 'uuid'
-
-// This is a placeholder for the actual database integration
-const tempStorage: { [key: string]: { content: string, file?: Buffer } } = {}
+import { saveData } from '@/lib/storage'
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,11 +16,13 @@ export async function POST(req: NextRequest) {
     }
 
     let fileBuffer: Buffer | undefined
+    let fileName: string | undefined
     if (file) {
       if (file.size > 100 * 1024 * 1024) { // 100MB limit
         return NextResponse.json({ error: 'File size exceeds 100MB limit' }, { status: 400 })
       }
       fileBuffer = Buffer.from(await file.arrayBuffer())
+      fileName = file.name
     }
 
     const id = uuidv4()
@@ -33,13 +33,16 @@ export async function POST(req: NextRequest) {
     let encryptedContent = cipher.update(content, 'utf8', 'hex')
     encryptedContent += cipher.final('hex')
 
-    tempStorage[id] = {
+    await saveData(id, {
       content: encryptedContent,
-      file: fileBuffer,
-    }
+      file: fileBuffer ? fileBuffer.toString('base64') : undefined,
+      fileName,
+      createdAt: Date.now(),
+      encryptionKey: encryptionKey.toString('hex'),
+      iv: iv.toString('hex')
+    })
 
-    // In a real implementation, you would store this in a database
-    // along with the IV, and set an expiration time
+    console.log(`Link generated: ${id}`)
 
     const link = `${process.env.NEXT_PUBLIC_BASE_URL}/access/${id}`
 
