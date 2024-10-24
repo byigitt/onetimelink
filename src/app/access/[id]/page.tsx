@@ -101,12 +101,12 @@ export default function AccessPage() {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="w-full max-w-md mx-auto">
+            <Card className="w-full max-w-sm sm:max-w-md mx-auto">
               <CardHeader>
                 <CardTitle>Error</CardTitle>
               </CardHeader>
               <CardContent>
-                <p>{error}</p>
+                <p className="text-sm sm:text-base">{error}</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -118,12 +118,12 @@ export default function AccessPage() {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="w-full max-w-md mx-auto">
+            <Card className="w-full max-w-sm sm:max-w-md lg:max-w-lg mx-auto">
               <CardHeader>
-                <CardTitle>Shared Content</CardTitle>
-                <CardDescription>This content will be deleted after viewing</CardDescription>
+                <CardTitle className="text-xl sm:text-2xl">Shared Content</CardTitle>
+                <CardDescription className="text-sm">This content will be deleted after viewing</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 {content && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -131,27 +131,29 @@ export default function AccessPage() {
                     transition={{ delay: 0.2 }}
                   >
                     <h3 className="font-semibold leading-none tracking-tight text-base mb-2">Content</h3>
-                    <p className="whitespace-pre-wrap bg-muted p-4 text-sm rounded-md">{content}</p>
+                    <p className="whitespace-pre-wrap bg-muted p-3 sm:p-4 text-xs sm:text-sm rounded-md">{content}</p>
                   </motion.div>
                 )}
                 {fileUrl && (
                   <motion.div
-                    className="mt-4"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
                   >
                     <h3 className="font-semibold leading-none tracking-tight text-base mb-2">Attached File</h3>
-                    <div className="flex items-center space-x-2 bg-muted p-4 rounded-md">
-                      <File className="h-4 w-4" />
-                      <span className="flex-grow text-sm">{fileName}</span>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 bg-muted p-3 sm:p-4 rounded-md">
+                      <div className="flex items-center space-x-2 flex-grow">
+                        <File className="h-4 w-4 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm truncate">{fileName}</span>
+                      </div>
                       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <Button onClick={handleDownload} disabled={isDownloading}>
+                        <Button onClick={handleDownload} disabled={isDownloading} size="sm">
                           {isDownloading ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
                           ) : (
-                            <FileDown className="h-4 w-4" />
+                            <FileDown className="h-4 w-4 mr-2" />
                           )}
+                          {isDownloading ? 'Downloading...' : 'Download'}
                         </Button>
                       </motion.div>
                     </div>
@@ -159,7 +161,7 @@ export default function AccessPage() {
                 )}
               </CardContent>
               <CardFooter>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Warning: This content will be deleted after you leave this page.
                 </p>
               </CardFooter>
