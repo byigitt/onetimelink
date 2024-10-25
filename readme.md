@@ -22,8 +22,8 @@ This is a simple app that allows you to create a one-time link for a user to acc
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/one-time-link.git
-   cd one-time-link
+   git clone https://github.com/byigitt/onetimelink.git
+   cd onetimelink
    ```
 
 2. Install dependencies:
