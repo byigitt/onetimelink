@@ -34,6 +34,7 @@ This is a simple app that allows you to create a one-time link for a user to acc
 3. Create a `.env.local` file in the root directory and add the following:
    ```
    NEXT_PUBLIC_BASE_URL=http://localhost:3000
+   RESEND_API_KEY=re_xxxx...  # Get this from resend.com
    ```
 
 4. Start the development server:
