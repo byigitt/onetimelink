@@ -32,6 +32,7 @@ export default function OneTimeLinkForm() {
     defaultValues: {
       content: '',
       email: '',
+      file: undefined,
     },
   })
 
@@ -194,31 +195,6 @@ export default function OneTimeLinkForm() {
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email (Optional)</FormLabel>
-                    <FormControl>
-                      <div className="flex items-center space-x-2">
-                        <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        <Input 
-                          type="email" 
-                          placeholder="recipient@example.com" 
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormDescription>
-                      The one-time link will be sent to this email address if provided.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <FormField
                 control={form.control}
                 name="file"
@@ -233,6 +209,31 @@ export default function OneTimeLinkForm() {
                     </FormControl>
                     <FormDescription>
                       Upload a file (max 100MB) to be shared securely.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email (Optional)</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input 
+                          type="email"
+                          placeholder="recipient@example.com"
+                          className="pl-8"
+                          {...field}
+                        />
+                        <Mail className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      The one-time link will be sent to this email address if provided.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
