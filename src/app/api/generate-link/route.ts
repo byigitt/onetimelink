@@ -4,12 +4,15 @@ import { type NextRequest, NextResponse } from 'next/server'
 import crypto from 'node:crypto'
 import { v4 as uuidv4 } from 'uuid'
 import { saveData } from '@/lib/storage'
+import { sendEmail } from '@/lib/email'
+import { generateOneTimeLinkEmail } from '@/lib/email-templates'
 
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData()
     const content = formData.get('content') as string
     const file = formData.get('file') as File | null
+    const email = formData.get('email') as string | null
 
     if (!content) {
       return NextResponse.json({ error: 'Content is required' }, { status: 400 })
@@ -45,6 +48,15 @@ export async function POST(req: NextRequest) {
     console.log(`Link generated: ${id}`)
 
     const link = `${process.env.NEXT_PUBLIC_BASE_URL}/access/${id}`
+
+    // If email is provided, send the link
+    if (email) {
+      await sendEmail({
+        to: email,
+        subject: 'Your One-Time Link',
+        html: generateOneTimeLinkEmail(link),
+      })
+    }
 
     return NextResponse.json({ link })
   } catch (error) {
