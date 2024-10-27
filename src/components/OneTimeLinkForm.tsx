@@ -9,13 +9,14 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Copy, Link as LinkIcon, Check, FileText } from 'lucide-react'
+import { Loader2, Copy, Link as LinkIcon, Check, FileText, Mail } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { motion, AnimatePresence } from 'framer-motion'
 
 const formSchema = z.object({
   content: z.string().min(1, 'Content is required'),
   file: z.instanceof(File).optional(),
+  email: z.string().email('Invalid email address').optional().or(z.literal('')),
 })
 
 export default function OneTimeLinkForm() {
@@ -30,6 +31,7 @@ export default function OneTimeLinkForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       content: '',
+      email: '',
     },
   })
 
@@ -40,6 +42,9 @@ export default function OneTimeLinkForm() {
       formData.append('content', values.content)
       if (values.file) {
         formData.append('file', values.file)
+      }
+      if (values.email) {
+        formData.append('email', values.email)
       }
 
       const response = await fetch('/api/generate-link', {
@@ -55,6 +60,13 @@ export default function OneTimeLinkForm() {
       setGeneratedLink(data.link)
       setSharedContent(values.content)
       setSharedFileName(values.file?.name || null)
+
+      if (values.email) {
+        toast({
+          title: "Email Sent",
+          description: "The link has been sent to the provided email address.",
+        })
+      }
     } catch (error) {
       console.error('Error generating link:', error)
       toast({
@@ -165,7 +177,7 @@ export default function OneTimeLinkForm() {
           transition={{ duration: 0.3 }}
         >
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
                 name="content"
@@ -182,14 +194,42 @@ export default function OneTimeLinkForm() {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email (Optional)</FormLabel>
+                    <FormControl>
+                      <div className="flex items-center space-x-2">
+                        <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <Input 
+                          type="email" 
+                          placeholder="recipient@example.com" 
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      The one-time link will be sent to this email address if provided.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="file"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>File (optional)</FormLabel>
+                    <FormLabel>File (Optional)</FormLabel>
                     <FormControl>
-                      <Input type="file" onChange={(e) => field.onChange(e.target.files?.[0])} />
+                      <Input 
+                        type="file" 
+                        onChange={(e) => field.onChange(e.target.files?.[0])} 
+                      />
                     </FormControl>
                     <FormDescription>
                       Upload a file (max 100MB) to be shared securely.
@@ -198,6 +238,7 @@ export default function OneTimeLinkForm() {
                   </FormItem>
                 )}
               />
+
               <Button 
                 type="submit" 
                 disabled={isLoading}
