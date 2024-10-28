@@ -7,6 +7,8 @@ import { saveData } from '@/lib/storage'
 import { sendEmail } from '@/lib/email'
 import { generateOneTimeLinkEmail } from '@/lib/email-templates'
 
+const MAX_FILE_SIZE = Number(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024 // Default to 10MB if not set
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData()
@@ -21,8 +23,10 @@ export async function POST(req: NextRequest) {
     let fileBuffer: Buffer | undefined
     let fileName: string | undefined
     if (file) {
-      if (file.size > 100 * 1024 * 1024) { // 100MB limit
-        return NextResponse.json({ error: 'File size exceeds 100MB limit' }, { status: 400 })
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json({ 
+          error: `File size exceeds ${MAX_FILE_SIZE / (1024 * 1024)}MB limit` 
+        }, { status: 400 })
       }
       fileBuffer = Buffer.from(await file.arrayBuffer())
       fileName = file.name
@@ -51,11 +55,11 @@ export async function POST(req: NextRequest) {
 
     // If email is provided, send the link
     if (email) {
-      await sendEmail({
-        to: email,
-        subject: 'Your One-Time Link',
-        html: generateOneTimeLinkEmail(link),
-      })
+      await sendEmail(
+        email,
+        'Your One-Time Link',
+        generateOneTimeLinkEmail(link)
+      )
     }
 
     return NextResponse.json({ link })
