@@ -12,7 +12,6 @@ import { useToast } from "@/hooks/use-toast"
 import { Loader2, Copy, Link as LinkIcon, Check, FileText, Mail } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { motion, AnimatePresence } from 'framer-motion'
-import { sendEmail } from '@/lib/email'
 import pool from '@/config/database'
 
 const MAX_FILE_SIZE = Number(process.env.NEXT_PUBLIC_MAX_FILE_SIZE) || 10 * 1024 * 1024 // Default to 10MB if not set
@@ -75,26 +74,34 @@ export default function OneTimeLinkForm() {
 
       const linkId = result.rows[0].id;
       const downloadLink = `${window.location.origin}/download/${linkId}`;
-      // Send email
-      await sendEmail(
-        form.getValues('email') || '',
-        'You received a one-time download link',
-        `
-        <h1>You have received a file</h1>
-        <p>Click the link below to download your file:</p>
-        <a href="${downloadLink}">${downloadLink}</a>
-        <p>This link will expire in 24 hours and can only be used once.</p>
-        `
-      );
+
+      // Send email using the API route instead
+      if (form.getValues('email')) {
+        const emailResponse = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: form.getValues('email'),
+            link: downloadLink,
+          }),
+        });
+
+        if (!emailResponse.ok) {
+          const errorData = await emailResponse.json();
+          throw new Error(errorData.error || 'Failed to send email');
+        }
+      }
 
       setGeneratedLink(downloadLink);
       setSharedContent(form.getValues('content'));
       setSharedFileName(form.getValues('file')?.name || null);
 
       toast({
-        title: "Email Sent",
-        description: "The link has been sent to the provided email address.",
-      })
+        title: "Success",
+        description: "Link generated and email sent successfully.",
+      });
     } catch (error) {
       console.error('Error:', error);
       toast({
