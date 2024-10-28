@@ -6,60 +6,84 @@ This is a simple app that allows you to create a one-time link for a user to acc
 
 - Create one-time links for secure sharing of sensitive information
 - End-to-end encryption using AES-256
-- Support for text content and file uploads (up to 100MB)
-- No account required
+- Support for text content and file uploads (up to 10MB)
+- Custom SMTP server support
+- PostgreSQL database for reliable storage
 - Automatic data deletion after 24 hours or first access
 - Simple and intuitive user interface
 
-## Getting Started
-
-### Prerequisites
+## Prerequisites
 
 - Node.js (v14 or later)
 - pnpm package manager
+- PostgreSQL database
 
-### Installation
+## Installation
 
 1. Clone the repository:
-   ```
+   ```bash
    git clone https://github.com/byigitt/onetimelink.git
    cd onetimelink
    ```
 
 2. Install dependencies:
-   ```
+   ```bash
    pnpm install
    ```
 
-3. Create a `.env.local` file in the root directory and add the following:
-   ```
+3. Set up the database:
+   - Create a PostgreSQL database
+   - Run the schema file from `db/schema.sql`
+
+4. Create a `.env` file in the root directory with the following:
+   ```env
+   # Database Configuration
+   DATABASE_URL=postgresql://user:password@localhost:5432/onetimelink
+
+   # SMTP Configuration
+   SMTP_HOST=your-smtp-server.com
+   SMTP_PORT=587
+   SMTP_USER=your-email@domain.com
+   SMTP_PASS=your-password
+
+   # File Size Limit (10MB in bytes)
+   MAX_FILE_SIZE=10485760
+
+   # App URL
    NEXT_PUBLIC_BASE_URL=http://localhost:3000
-   RESEND_API_KEY=re_xxxx...  # Get this from resend.com
    ```
 
-4. Start the development server:
-   ```
+5. Start the development server:
+   ```bash
    pnpm dev
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Usage
 
-1. On the home page, enter the text content or upload a file you want to share.
-2. Click the "Generate Link" button.
-3. Copy the generated link and share it with the intended recipient.
-4. The recipient can access the content only once by visiting the link.
+1. Enter the text content or upload a file (max 10MB).
+2. Optionally provide an email address for automatic link delivery.
+3. Click "Generate Link" to create a one-time access link.
+4. Share the generated link with the intended recipient.
+5. The link will expire after 24 hours or first access.
 
 ## Deployment
 
-This project can be easily deployed to Vercel:
+1. Set up a PostgreSQL database in your production environment
+2. Configure your SMTP server details
+3. Deploy to your preferred platform (Vercel, Railway, etc.)
+4. Set the environment variables in your deployment platform
 
-1. Push your code to a GitHub repository.
-2. Connect your GitHub account to Vercel.
-3. Create a new project in Vercel and select your repository.
-4. Configure the environment variables in Vercel's project settings.
-5. Deploy the project.
+## Environment Variables
+
+- `DATABASE_URL`: PostgreSQL connection string
+- `SMTP_HOST`: SMTP server hostname
+- `SMTP_PORT`: SMTP server port (usually 587 or 465)
+- `SMTP_USER`: SMTP account username/email
+- `SMTP_PASS`: SMTP account password
+- `MAX_FILE_SIZE`: Maximum file size in bytes (default: 10MB)
+- `NEXT_PUBLIC_BASE_URL`: Your application's base URL
 
 ## Contributing
 
@@ -74,3 +98,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Next.js for the React framework
 - Tailwind CSS for styling
 - Shadcn UI for UI components
+- PostgreSQL for database
+- Nodemailer for email handling
