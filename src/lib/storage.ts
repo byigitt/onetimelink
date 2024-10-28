@@ -1,54 +1,41 @@
-import fs from 'node:fs/promises'
-import path from 'node:path'
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 
-const storagePath = path.join(process.cwd(), 'temp-storage.json')
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION!,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+})
 
-interface StorageData {
-  content: string
-  file?: string
-  fileName?: string
-  createdAt: number
-  encryptionKey: string
-  iv: string
+export async function storeFile(fileBuffer: Buffer, fileName: string) {
+  const key = `${Date.now()}-${fileName}`
+  
+  await s3Client.send(new PutObjectCommand({
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: key,
+    Body: fileBuffer,
+    ContentType: 'application/octet-stream',
+  }))
+  
+  return key
 }
 
-export async function saveData(id: string, data: StorageData): Promise<void> {
-  let storage: Record<string, StorageData> = {}
-  try {
-    const content = await fs.readFile(storagePath, 'utf-8')
-    storage = JSON.parse(content)
-  } catch (error: unknown) {
-    // File doesn't exist yet, that's okay
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      console.error('Error reading storage file:', error)
-    }
+export async function retrieveFile(key: string) {
+  const command = new GetObjectCommand({
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: key,
+  })
+  
+  const response = await s3Client.send(command)
+  const arrayBuffer = await response.Body?.transformToByteArray()
+  
+  if (!arrayBuffer) {
+    throw new Error('File not found')
   }
-  storage[id] = data
-  await fs.writeFile(storagePath, JSON.stringify(storage))
-}
-
-export async function getData(id: string): Promise<StorageData | null> {
-  try {
-    const content = await fs.readFile(storagePath, 'utf-8')
-    const storage: Record<string, StorageData> = JSON.parse(content)
-    return storage[id] || null
-  } catch (error: unknown) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      console.error('Error reading storage file:', error)
-    }
-    return null
-  }
-}
-
-export async function deleteData(id: string): Promise<void> {
-  try {
-    const content = await fs.readFile(storagePath, 'utf-8')
-    const storage: Record<string, StorageData> = JSON.parse(content)
-    delete storage[id]
-    await fs.writeFile(storagePath, JSON.stringify(storage))
-  } catch (error: unknown) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-      console.error('Error deleting data:', error)
-    }
+  
+  return { 
+    buffer: Buffer.from(arrayBuffer), 
+    fileName: key.split('-').slice(1).join('-') 
   }
 }
