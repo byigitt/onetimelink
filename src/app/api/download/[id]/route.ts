@@ -2,6 +2,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server'
 import pool from '@/config/database'
+import { retrieveFile } from '@/lib/storage'
 
 export async function GET(req: NextRequest, props: { params: { id: string } }) {
   const id = props.params.id
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest, props: { params: { id: string } }) {
        WHERE id = $1 
        AND NOT downloaded 
        AND expires_at > NOW()
-       RETURNING file_name, file_content`,
+       RETURNING file_name, file_key`,
       [id]
     );
 
@@ -25,13 +26,16 @@ export async function GET(req: NextRequest, props: { params: { id: string } }) {
       return new NextResponse('File not found or link expired', { status: 404 })
     }
 
-    const { file_name, file_content } = result.rows[0]
+    const { file_key } = result.rows[0]
+    
+    // Retrieve file from S3
+    const { buffer, fileName } = await retrieveFile(file_key)
 
     console.log(`File downloaded for id: ${id}`)
 
-    return new NextResponse(file_content, {
+    return new NextResponse(buffer, {
       headers: {
-        'Content-Disposition': `attachment; filename="${file_name}"`,
+        'Content-Disposition': `attachment; filename="${fileName}"`,
         'Content-Type': 'application/octet-stream',
       },
     })
