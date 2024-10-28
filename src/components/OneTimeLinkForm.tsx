@@ -12,10 +12,19 @@ import { useToast } from "@/hooks/use-toast"
 import { Loader2, Copy, Link as LinkIcon, Check, FileText, Mail } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { motion, AnimatePresence } from 'framer-motion'
+import { sendEmail } from '@/lib/email'
+import pool from '@/config/database'
+
+const MAX_FILE_SIZE = Number(process.env.NEXT_PUBLIC_MAX_FILE_SIZE) || 10 * 1024 * 1024 // Default to 10MB if not set
 
 const formSchema = z.object({
   content: z.string().min(1, 'Content is required'),
-  file: z.instanceof(File).optional(),
+  file: z.instanceof(File)
+    .refine(
+      (file) => !file || file.size <= MAX_FILE_SIZE,
+      `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`
+    )
+    .optional(),
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
 })
 
@@ -36,40 +45,58 @@ export default function OneTimeLinkForm() {
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true)
-    try {
-      const formData = new FormData()
-      formData.append('content', values.content)
-      if (values.file) {
-        formData.append('file', values.file)
-      }
-      if (values.email) {
-        formData.append('email', values.email)
-      }
-
-      const response = await fetch('/api/generate-link', {
-        method: 'POST',
-        body: formData,
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!form.getValues('file') || !form.getValues('email')) return;
+    // Check file size
+    const file = form.getValues('file');
+    if (file && file.size > MAX_FILE_SIZE) {
+      toast({
+        title: "Error", 
+        description: `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
+        variant: "destructive",
       })
+      return;
+    }
 
-      if (!response.ok) {
-        throw new Error('Failed to generate link')
-      }
+    try {
+      // Convert file to Buffer
+      const buffer = await file?.arrayBuffer();
+      
+      // Save to database
+      const result = await pool.query(
+        `INSERT INTO one_time_links (file_name, file_content, email_to, email_from, expires_at)
+         VALUES ($1, $2, $3, $4, NOW() + INTERVAL '24 hours')
+         RETURNING id`,
+        // biome-ignore lint/style/noNonNullAssertion: <explanation>
+        [file?.name, Buffer.from(buffer!), form.getValues('email'), process.env.SMTP_USER]
+      );
 
-      const data = await response.json()
-      setGeneratedLink(data.link)
-      setSharedContent(values.content)
-      setSharedFileName(values.file?.name || null)
+      const linkId = result.rows[0].id;
+      const downloadLink = `${window.location.origin}/download/${linkId}`;
+      // Send email
+      await sendEmail(
+        form.getValues('email') || '',
+        'You received a one-time download link',
+        `
+        <h1>You have received a file</h1>
+        <p>Click the link below to download your file:</p>
+        <a href="${downloadLink}">${downloadLink}</a>
+        <p>This link will expire in 24 hours and can only be used once.</p>
+        `
+      );
 
-      if (values.email) {
-        toast({
-          title: "Email Sent",
-          description: "The link has been sent to the provided email address.",
-        })
-      }
+      setGeneratedLink(downloadLink);
+      setSharedContent(form.getValues('content'));
+      setSharedFileName(form.getValues('file')?.name || null);
+
+      toast({
+        title: "Email Sent",
+        description: "The link has been sent to the provided email address.",
+      })
     } catch (error) {
-      console.error('Error generating link:', error)
+      console.error('Error:', error);
       toast({
         title: "Error",
         description: "Failed to generate link. Please try again.",
@@ -78,7 +105,7 @@ export default function OneTimeLinkForm() {
     } finally {
       setIsLoading(false)
     }
-  }
+  };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generatedLink)
@@ -178,7 +205,7 @@ export default function OneTimeLinkForm() {
           transition={{ duration: 0.3 }}
         >
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <FormField
                 control={form.control}
                 name="content"
@@ -208,7 +235,7 @@ export default function OneTimeLinkForm() {
                       />
                     </FormControl>
                     <FormDescription>
-                      Upload a file (max 100MB) to be shared securely.
+                      Upload a file (max {MAX_FILE_SIZE / (1024 * 1024)}MB) to be shared securely.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
